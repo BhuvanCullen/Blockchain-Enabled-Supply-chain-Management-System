@@ -1,0 +1,309 @@
+#include <Keypad.h>
+#include<EEPROM.h>
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+char password[4];
+char pass[4], pass1[4];
+int otp;
+char customKey = 0;
+char key;
+int j = 0;
+
+const byte ROWS = 4; //four rows
+const byte COLS = 4; //four columns
+
+char hexaKeys[ROWS][COLS] =
+{
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'},
+};
+
+byte rowPins[ROWS] = {13, 12, 11, 10}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {9, 8, 7, 6}; //connect to the column pinouts of the keypad
+Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+//**************************************************************
+//**************************************************************
+#include "HX711.h"
+#define calibration_factor1 -7050.0  //This value is obtained using the SparkFun_HX711_Calibration sketch
+#define LOADCELL1_DOUT_PIN A0
+#define LOADCELL1_SCK_PIN A1
+HX711 scale1;
+
+#define calibration_factor2 -7050.0  //This value is obtained using the SparkFun_HX711_Calibration sketch
+#define LOADCELL2_DOUT_PIN A2
+#define LOADCELL2_SCK_PIN A3
+HX711 scale2;
+
+#define calibration_factor3 -7050.0  //This value is obtained using the SparkFun_HX711_Calibration sketch
+#define LOADCELL3_DOUT_PIN 2
+#define LOADCELL3_SCK_PIN 3
+HX711 scale3;
+
+#define calibration_factor4 -7050.0  //This value is obtained using the SparkFun_HX711_Calibration sketch
+#define LOADCELL4_DOUT_PIN 4
+#define LOADCELL4_SCK_PIN 5
+HX711 scale4;
+
+//**************************************************************
+float present1 = 0, previous1 = 0;
+int weight1 = 0;
+
+float present2 = 0, previous2 = 0;
+int weight2 = 0;
+
+float present3 = 0, previous3 = 0;
+int weight3 = 0;
+
+float present4 = 0, previous4 = 0;
+int weight4 = 0;
+//**************************************************************
+void setup()
+{
+  delay(500);
+  Serial.begin(115200);
+  randomseed(millis())
+  delay(1000);
+  lcd.begin();
+  lcd.print("Loadcell with OTP");
+  lcd.setCursor(0, 1);
+  lcd.print("IOT");
+  delay(2000);
+  scale1.begin(LOADCELL1_DOUT_PIN, LOADCELL1_SCK_PIN);
+  scale1.set_scale(calibration_factor1);  //This value is obtained by using the SparkFun_HX711_Calibration sketch
+  scale1.tare();
+  scale2.begin(LOADCELL2_DOUT_PIN, LOADCELL2_SCK_PIN);
+  scale2.set_scale(calibration_factor2);  //This value is obtained by using the SparkFun_HX711_Calibration sketch
+  scale2.tare();
+  scale3.begin(LOADCELL3_DOUT_PIN, LOADCELL3_SCK_PIN);
+  scale3.set_scale(calibration_factor3);  //This value is obtained by using the SparkFun_HX711_Calibration sketch
+  scale3.tare();
+  scale4.begin(LOADCELL4_DOUT_PIN, LOADCELL4_SCK_PIN);
+  scale4.set_scale(calibration_factor4);  //This value is obtained by using the SparkFun_HX711_Calibration sketch
+  scale4.tare();
+  delay(500);
+  lcd.clear(); // initialize the lcd
+  lcd.setCursor(0, 0);
+  lcd.print("Tare Calibration");
+  lcd.setCursor(0, 1);
+  lcd.print("Completed.");
+  //Assuming there is no weight on the scale at start up, reset the scale to 0
+  delay(2000);
+  lcd.clear(); // initialize the lcd
+  lcd.setCursor(0, 0);
+  lcd.print("Pls Place the weights");
+  lcd.setCursor(0, 1);
+  lcd.print("on the Loadcells");
+  delay(2000);
+  lcd.clear();
+  lcd.print("Press * to Start:");
+  delay(500);
+}
+
+void loop()
+{
+  //************************************************
+  customKey = customKeypad.getKey();
+  delay(250);
+  otp = random(1111, 9999);
+  if (customKey == '*')
+  {
+    //*************************************************************
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Measuring sensor1");
+    delay(1000);
+    
+    for (int i = 0; i < 20; i++)
+    {
+      present1 = scale1.get_units();
+      previous1 = present1 + previous1;
+    }
+    previous1 = previous1 / 100;
+    previous1 = previous1 / 14.48;
+    previous1 = previous1 * 1000;
+    weight1 = previous1;
+    previous1 = 0;
+    //*************************************************************
+    //*************************************************************
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Measuring sensor2");
+    delay(1000);
+    for (int i = 0; i < 20; i++)
+    {
+      present2 = scale2.get_units();
+      previous2 = present2 + previous2;
+    }
+    previous2 = previous2 / 100;
+    previous2 = previous2 / 14.48;
+    previous2 = previous2 * 1000;
+    weight2 = previous2;
+    previous2 = 0;
+    //*************************************************************
+    //*************************************************************
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Measuring sensors");
+    delay(500);
+    for (int i = 0; i < 20; i++)
+    {
+      present3 = scale3.get_units();
+      previous3 = present3 + previous3;
+    }
+    previous3 = previous3 / 100;
+    previous3 = previous3 / 14.48;
+    previous3 = previous3 * 1000;
+    weight3 = previous3;
+    previous3 = 0;
+    //*************************************************************
+    //*************************************************************
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Measuring sensor4");
+    delay(500);
+    for (int i = 0; i < 20; i++)
+    {
+      present4 = scale4.get_units();
+      previous4 = present4 + previous4;
+    }
+    previous4 = previous4 / 100;
+    previous4 = previous4 / 14.48;
+    previous4 = previous4 * 1000;
+    weight4 = previous4;
+    previous4 = 0;
+        //*************************************************************
+    delay(1000);
+    Serial.print("Weight1: ");
+    Serial.println(weight1);
+    delay(500);
+    Serial.print("Weight2: ");
+    Serial.println(weight2);
+    delay(500);
+    Serial.print("Weight3: ");
+    Serial.println(weight3);
+    delay(500);
+    Serial.print("Weight4: ");
+    Serial.println(weight4);
+    delay(500);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Weight1: ");
+    lcd.print(weight1);
+    lcd.print(" g");
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Weight2: ");
+    lcd.print(weight2);
+    lcd.print(" g");
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Weight3: ");
+    lcd.print(weight3);
+    lcd.print(" g");
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Weight4: ");
+    lcd.print(weight4);
+    lcd.print(" g");
+    delay(1000);
+    //IOT CODE HERE
+    //***********************************************************
+    otp = random(1111, 9999);
+    Serial.print("OTP: ");
+    Serial.println(otp);
+    delay(500); 
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Enter OTP");
+    //***********************************************************
+    delay(1000);
+    j = 0;
+    lcd.clear();
+    lcd.print("Enter OTP");
+    lcd.setCursor(0, 1);
+    while (j < 4)
+    {
+      char key = customKeypad.getKey();
+      if (key)
+      {
+        pass1[j++] = key;
+        lcd.print(key);
+      }
+      key = 0;
+    }
+    delay(500);
+
+    if (otp == atoi(pass1))
+    {
+      lcd.clear();
+      lcd.print("OTP Matched");
+      lcd.setCursor(0, 1);
+      lcd.print("Displaying weights");
+      delay(500);
+      String hashString1 = generatehashString();
+      Serial.println(hashString1);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Weight1: ");
+      lcd.setCursor(0, 1);
+      lcd.print(hashString1);
+      delay(1000);
+      String hashString2 = generatehashString();
+      Serial.println(hashString2);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Weight2: ");
+      lcd.setCursor(0, 1);
+      lcd.print(hashString2);
+      delay(1000);
+      String hashString3 = generatehashString();
+      Serial.println(hashString3);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Weight3: ");
+      lcd.setCursor(0, 1);
+      lcd.print(hashString3);
+      delay(1000);
+      String hashString4 = generatehashString();
+      Serial.println(hashString4);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Weight4: ");
+      lcd.setCursor(0, 1);
+      lcd.print(hashString4);
+      delay(1000);
+    }
+    else
+    {
+      lcd.clear();
+      lcd.print("OTP InCorrect");
+      lcd.setCursor(0, 1);
+      lcd.print("Try Again");
+      delay(500);
+    }
+    lcd.clear();
+    lcd.print("Press * to Start:");
+    delay(300);
+    return;
+  }
+}
+
+String generatehashString()
+{
+  const char letters[] = "abcdefghijklmnopqrstuvwxyz1234567890";
+  String hashString = "";
+  // Generate 6 hash lowercase letters
+  for (int i = 0; i < 32; i++)
+  {
+    hashString += letters[random(0, 36)];
+  }
+  return hashString;
+}
